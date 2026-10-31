@@ -19,8 +19,11 @@ export default function App() {
   const [form, setForm] = useState({ area: '', issueType: ISSUES[0], description: '', reporter: '', photo: '' });
   const [coords, setCoords] = useState(null);      // GPS location of the reporter
   const [search, setSearch] = useState('');
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [adminKey, setAdminKey] = useState('');
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('swachh-user') || 'null'));
+  const [token, setToken] = useState(() => localStorage.getItem('swachh-token') || '');
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [msg, setMsg] = useState('');
 
   // ---------- Load data from backend ----------
@@ -37,6 +40,25 @@ export default function App() {
       (p) => setCoords({ lat: p.coords.latitude, lng: p.coords.longitude }), () => {});
   }, []);
 
+  const authenticate = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`/api/auth/${authMode}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(authForm),
+    });
+    const data = await res.json();
+    if (!res.ok) return setMsg(data.error || 'Authentication failed');
+    localStorage.setItem('swachh-token', data.token);
+    localStorage.setItem('swachh-user', JSON.stringify(data.user));
+    setToken(data.token); setUser(data.user); setShowAuth(false); setAuthForm({ name: '', email: '', password: '' });
+    setMsg(`Welcome, ${data.user.name}`);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('swachh-token'); localStorage.removeItem('swachh-user');
+    setToken(''); setUser(null); setShowAuth(false); setMsg('You have been logged out');
+  };
+
   // ---------- Photo: read the chosen file as base64 text ----------
   const pickPhoto = (e) => {
     const file = e.target.files[0];
@@ -50,8 +72,9 @@ export default function App() {
   // ---------- Submit a complaint ----------
   const submit = async (e) => {
     e.preventDefault();
+    if (!token) return setMsg('Please log in before submitting a complaint.');
     const res = await fetch('/api/reports', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ ...form, ...coords }),
     });
     const data = await res.json();
@@ -62,7 +85,7 @@ export default function App() {
   // ---------- Admin: change complaint status ----------
   const updateStatus = async (id, status) => {
     const res = await fetch(`/api/reports/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status }),
     });
     res.ok ? load() : setMsg('Wrong admin key');
@@ -85,8 +108,23 @@ export default function App() {
           Swachh Tracker
         </div>
         <div className="links"><a href="#areas">Areas</a><a href="#report">Report</a><a href="#track">Track</a><a href="#top">Leaderboard</a></div>
-        <button className="btn btn-out" onClick={() => setShowAdmin(!showAdmin)}>{showAdmin ? 'Close admin' : 'Admin login'}</button>
+        {user ? (
+          <div className="account"><span className="bd plain">{user.role}</span><b>{user.name}</b><button className="btn btn-out" onClick={logout}>Log out</button></div>
+        ) : <button className="btn btn-out" onClick={() => setShowAuth(!showAuth)}>Log in / Register</button>}
       </div>
+
+      {showAuth && <div className="auth-panel card">
+        <div className="top"><div><h2>{authMode === 'login' ? 'Log in' : 'Create user account'}</h2><p className="sub">Admins and citizens use the same secure login.</p></div><button className="btn btn-out" onClick={() => setShowAuth(false)}>Close</button></div>
+        <form className="form" onSubmit={authenticate}>
+          {authMode === 'register' && <input className="in" required placeholder="Your name" value={authForm.name} onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })} />}
+          <input className="in" required type="email" placeholder="Email address" value={authForm.email} onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })} />
+          <input className="in" required minLength="6" type="password" placeholder="Password" value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })} />
+          <button className="btn btn-green">{authMode === 'login' ? 'Log in' : 'Create account'}</button>
+        </form>
+        <button className="auth-switch" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}>
+          {authMode === 'login' ? 'New citizen? Create an account' : 'Already registered? Log in'}
+        </button>
+      </div>}
 
       {/* ===== Hero + live stats ===== */}
       <div className="hero">
@@ -158,15 +196,14 @@ export default function App() {
           <h2>Track complaints</h2>
           <p className="sub">Search by complaint ID or area.</p>
           <input className="in" placeholder="Search, e.g. 4F2A9C" value={search} onChange={(e) => setSearch(e.target.value)} />
-          {showAdmin && <input className="in" type="password" placeholder="Admin key" value={adminKey}
-            onChange={(e) => setAdminKey(e.target.value)} style={{ marginTop: 8 }} />}
+          {user?.role === 'admin' && <p className="sub admin-note">Admin controls enabled for {user.email}</p>}
           {shown.map((r) => {
             const step = STEPS.indexOf(r.status) + 1;   // 1, 2 or 3 bars filled
             return (
               <div className="item" key={r._id}>
                 <div className="top">
                   <b>#{r._id.slice(-6).toUpperCase()} · {r.issueType}</b>
-                  {showAdmin && adminKey ? (
+                  {user?.role === 'admin' ? (
                     <select value={r.status} onChange={(e) => updateStatus(r._id, e.target.value)}>
                       {STEPS.map((s) => <option key={s}>{s}</option>)}
                     </select>

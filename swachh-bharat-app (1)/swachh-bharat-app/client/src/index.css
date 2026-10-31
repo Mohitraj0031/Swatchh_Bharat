@@ -15,6 +15,10 @@ button, input, select, textarea { font:inherit; }
 .nav { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 56px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
 .logo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; }
 .links { display:flex; gap:26px; font-size:14px; font-weight:500; } .links a { color:var(--muted); text-decoration:none; }
+.account { display:flex; align-items:center; gap:10px; font-size:14px; }
+.auth-panel { max-width:620px; margin:24px auto 0; padding:24px; }
+.auth-switch { border:0; background:transparent; color:var(--green); cursor:pointer; font-weight:700; padding:4px 0; }
+.admin-note { margin:8px 0 0; }
 
 /* hero */
 .hero { display:flex; gap:40px; align-items:center; padding:56px; background:var(--dark); color:#fff; }
@@ -52,4 +56,5 @@ small { color:var(--muted); }
   .nav, .hero, .wrap, .two, .foot { padding-left:18px; padding-right:18px; }
   .links { display:none; } .hero, .two { flex-direction:column; } .stats { width:100%; }
   .hero h1 { font-size:32px; } .rank { flex-direction:column; }
+  .account { flex-wrap:wrap; justify-content:flex-end; }
 }

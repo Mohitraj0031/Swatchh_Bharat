@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd \"swachh-bharat-app (1)/swachh-bharat-app/client\" && npm install",
+  "buildCommand": "cd \"swachh-bharat-app (1)/swachh-bharat-app/client\" && npm run build",
+  "outputDirectory": "swachh-bharat-app (1)/swachh-bharat-app/client/dist"
+}
