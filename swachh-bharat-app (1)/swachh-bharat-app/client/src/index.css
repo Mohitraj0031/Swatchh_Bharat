@@ -39,6 +39,7 @@ button, input, select, textarea { font:inherit; }
 .bad { background:var(--red); color:#fff; } .plain { background:#E6EDE4; color:var(--dark); }
 .bar { height:8px; border-radius:8px; background:#E6EDE4; overflow:hidden; flex:1; } .bar i { display:block; height:100%; }
 small { color:var(--muted); }
+.area-state { display:block; margin-top:4px; font-size:12px; }
 
 /* form */
 .form { display:grid; gap:12px; } .row2 { display:flex; gap:12px; align-items:center; }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { demoAreas, demoReports } from './demoData';
 
 // ---------- Constants ----------
 const ISSUES = ['Garbage pile', 'Overflowing dustbin', 'Open drain', 'Littering', 'Other'];
@@ -25,13 +26,22 @@ export default function App() {
   const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [msg, setMsg] = useState('');
+  const [isDemo, setIsDemo] = useState(false);
 
   // ---------- Load data from backend ----------
   const load = async () => {
     try {
-      setAreas(await (await fetch('/api/areas')).json());
-      setReports(await (await fetch('/api/reports')).json());
-    } catch { setMsg('Cannot reach the server. Is the backend running?'); }
+      const [areasResponse, reportsResponse] = await Promise.all([fetch('/api/areas'), fetch('/api/reports')]);
+      if (!areasResponse.ok || !reportsResponse.ok) throw new Error('API unavailable');
+      setAreas(await areasResponse.json());
+      setReports(await reportsResponse.json());
+      setIsDemo(false);
+    } catch {
+      setAreas(demoAreas);
+      setReports(demoReports);
+      setIsDemo(true);
+      setMsg('Showing demo data. Connect the backend to use live data and submit complaints.');
+    }
   };
   useEffect(() => {
     load();
@@ -148,11 +158,11 @@ export default function App() {
       {/* ===== Area cleanliness cards ===== */}
       <div className="wrap" id="areas">
         <h2>Area cleanliness status</h2>
-        <p className="sub">Status updates automatically from open complaints in each area.</p>
+        <p className="sub">{isDemo ? 'Demo data for visualization. ' : ''}Status updates automatically from open complaints in each area.</p>
         <div className="cards">
           {areas.map((a) => (
             <div className="card" key={a._id}>
-              <div className="top"><b>{a.name}</b><span className={`bd ${LOOK[a.status].cls}`}>{LOOK[a.status].label}</span></div>
+              <div className="top"><div><b>{a.name}</b>{a.state && <small className="area-state">{a.state}</small>}</div><span className={`bd ${LOOK[a.status].cls}`}>{LOOK[a.status].label}</span></div>
               <div className="bar" style={{ margin: '14px 0 8px' }}><i style={{ width: score(a) + '%', background: LOOK[a.status].color }} /></div>
               <small>Score {score(a)} / 100 · {a.openIssues} open issue(s)</small>
             </div>
@@ -169,7 +179,7 @@ export default function App() {
             <div className="row2">
               <select className="in" required value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })}>
                 <option value="">Select area</option>
-                {areas.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
+                {areas.map((a) => <option key={a._id} value={a._id}>{a.name}{a.state ? `, ${a.state}` : ''}</option>)}
               </select>
               <select className="in" value={form.issueType} onChange={(e) => setForm({ ...form, issueType: e.target.value })}>
                 {ISSUES.map((i) => <option key={i}>{i}</option>)}
